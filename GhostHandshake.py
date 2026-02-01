@@ -31,19 +31,19 @@ def check_tools():
       try:
           import scapy
           print('[+] scapy found')
-      except ModulNotFoundError:
+      except ModuleNotFoundError:
           print('[+] scapy not found')
           sys.exit() 
       try:
           import threading
           print('[+] threading found')
-      except ModulNotFoundError:
+      except ModuleNotFoundError:
           print('[+] threading not found') 
           sys.exit()
       try:
           import subprocess
           print('[+] subprocess found')
-      except ModulNotFoundError:
+      except ModuleNotFoundError:
           print('[+] subprocess not found')
           sys.exit()
       time.sleep(3)      
