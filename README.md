@@ -18,7 +18,7 @@
  python3 GhostHandshake.py</pre>
 <h2 aling="left"> 📸  screenshot</h2>
 <p aling="left">* ☠️ this images shows the tool while it is running ☠️</p>
-<img src="assests/picture1.png" with="700">
+<img src="assests/picture0.png" with="700">
 
 <p aling="left"> ☠️ this is the result when the attack is successful ☠️</p>
 <img src="assests/picture2.png" with="700">
