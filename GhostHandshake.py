@@ -25,7 +25,7 @@ def save_information():
                                CRACK REPORT
       ================================================================
 
-               [+] Capture File : capture.cap
+               [+] Capture File : {target_ssid}-01.cap
                [+] Status       : HANDSHAKE FOUND
 
                [+] SSID         : {target_ssid}
